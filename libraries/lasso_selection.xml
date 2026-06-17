@@ -10,7 +10,10 @@
         <block s="reportJSFunction">
           <list></list>
           <l>(function() {&#xD;
+    var SILENT_MODE = false; // Change this to true to suppress the "Lasso active" toast popup&#xD;
+&#xD;
     function showToast(message) {&#xD;
+        if (SILENT_MODE) return;&#xD;
         var toast = document.createElement('div');&#xD;
         toast.textContent = message;&#xD;
         toast.style.position = 'fixed';&#xD;
@@ -358,6 +361,16 @@
 &#xD;
             if (this.focus) { this.focus.stopEditing(); }&#xD;
 &#xD;
+            // Clear any orphaned ghost lassos&#xD;
+            this.children.filter(function(child) {&#xD;
+                return child.isLassoFeedback === true;&#xD;
+            }).forEach(function(box) {&#xD;
+                box.destroy();&#xD;
+            });&#xD;
+            if (this.lassoFeedback) {&#xD;
+                this.lassoFeedback = null;&#xD;
+            }&#xD;
+&#xD;
             this.lassoStart = pos;&#xD;
             this.lassoFeedback = new BoxMorph();&#xD;
             this.lassoFeedback.color = new Color(153, 255, 213, 0.12);&#xD;
@@ -366,6 +379,7 @@
             this.lassoFeedback.setPosition(pos);&#xD;
             // Chromium throws RangeError on roundRect if width/height is less than border&#xD;
             this.lassoFeedback.setExtent(new Point(10, 10));&#xD;
+            this.lassoFeedback.isLassoFeedback = true;&#xD;
             this.add(this.lassoFeedback);&#xD;
 &#xD;
             this.lockMouseFocus();&#xD;
@@ -404,7 +418,16 @@
                 this.lassoFeedback = null;&#xD;
                 this.lassoStart = null;&#xD;
 &#xD;
+                var altHeld = this.world() &amp;&amp; this.world().hand.altPressed;&#xD;
+&#xD;
                 if (rect.width() &lt; 5 || rect.height() &lt; 5) {&#xD;
+                    if (!altHeld) {&#xD;
+                        this.children.filter(function(child) {&#xD;
+                            return child &amp;&amp; child.isLassoGroup === true;&#xD;
+                        }).forEach(function(g) {&#xD;
+                            g.unpack();&#xD;
+                        });&#xD;
+                    }&#xD;
                     return;&#xD;
                 }&#xD;
 &#xD;
@@ -415,11 +438,16 @@
                     }&#xD;
                 });&#xD;
 &#xD;
-                var altHeld = this.world() &amp;&amp; this.world().hand.altPressed;&#xD;
                 var group = null;&#xD;
                 if (altHeld) {&#xD;
                     group = this.children.find(function(child) {&#xD;
                         return child &amp;&amp; child.isLassoGroup === true;&#xD;
+                    });&#xD;
+                } else {&#xD;
+                    this.children.filter(function(child) {&#xD;
+                        return child &amp;&amp; child.isLassoGroup === true;&#xD;
+                    }).forEach(function(g) {&#xD;
+                        g.unpack();&#xD;
                     });&#xD;
                 }&#xD;
                 &#xD;
@@ -561,7 +589,7 @@
 &#xD;
     initLassoExtension();&#xD;
 })();&#xD;
-&#xD;
+
 </l>
         </block>
         <list></list>
